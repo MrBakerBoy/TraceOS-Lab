@@ -1,0 +1,76 @@
+#!/usr/bin/env bpftrace
+/*
+ * sched_trace.bt — Process scheduling tracer
+ * TraceOS Lab eBPF Observability Engine
+ *
+ * Tracks: context switches, CPU migrations, wakeups
+ * Usage:
+ *   bpftrace sched_trace.bt <pid>
+ *   (pass 0 to trace all processes)
+ */
+
+// ── Context switch: which process got swapped in/out ──
+tracepoint:sched:sched_switch
+/$1 != 0 && args->next_pid != $1 && args->prev_pid != $1/
+{ return; }
+
+tracepoint:sched:sched_switch
+{
+    @switch_by_process[args->next_comm] = count();
+}
+
+// ── Process wakeup ──
+tracepoint:sched:sched_wakeup
+/$1 != 0 && args->pid != $1/
+{ return; }
+
+tracepoint:sched:sched_wakeup
+{
+    @wakeups[args->comm] = count();
+}
+
+// ── New task creation ──
+tracepoint:sched:sched_wakeup_new
+/$1 != 0 && args->pid != $1/
+{ return; }
+
+tracepoint:sched:sched_wakeup_new
+{
+    @new_tasks[args->comm] = count();
+}
+
+// ── CPU migration ──
+tracepoint:sched:sched_migrate_task
+/$1 != 0 && args->pid != $1/
+{ return; }
+
+tracepoint:sched:sched_migrate_task
+{
+    @migrations[args->comm] = count();
+}
+
+// ── Periodic report every 2 seconds ──
+interval:s:2
+{
+    printf("\n=== Scheduling Report ===\n");
+
+    printf("Context Switches:\n");
+    print(@switch_by_process);
+    clear(@switch_by_process);
+
+    printf("Wakeups:\n");
+    print(@wakeups);
+    clear(@wakeups);
+
+    printf("Migrations:\n");
+    print(@migrations);
+    clear(@migrations);
+}
+
+END
+{
+    clear(@switch_by_process);
+    clear(@wakeups);
+    clear(@new_tasks);
+    clear(@migrations);
+}

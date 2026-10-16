@@ -1,0 +1,80 @@
+# ─── Dependencies ────────────────────────────────────────────────────────────
+frontend/node_modules/
+services/ai-service/.venv/
+
+# ─── Build Outputs ───────────────────────────────────────────────────────────
+frontend/.next/
+frontend/out/
+*.o
+*.so
+!ebpf/scripts/*.so
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ─── OS Files ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+._*           # macOS resource fork files
+*~
+
+# ─── Environment ─────────────────────────────────────────────────────────────
+.env
+.env.local
+env.list
+
+# ─── Docker ──────────────────────────────────────────────────────────────────
+docker-data/
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+*.log
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.venv/
+
+# ─── Temp ────────────────────────────────────────────────────────────────────
+tmp/
+/tmp/
+
+# ─── Backups ─────────────────────────────────────────────────────────────────
+*.bak
+*.bak2
+*.bak3
+*.rej
+*.orig
+tsconfig.tsbuildinfo
+
+# ─── NSJail binaries (keep only source) ──────────────────────────────────────
+nsjail/kafel/*.so
+nsjail/nsjail
+nsjail/*.o
+
+# ─── Compiled binaries ──────────────────────────────────────────────────────
+services/core-service/nsjail
+# === Large binary/wheel files ===
+*.whl
+wheels/
+
+# === Compiled Go binaries ===
+services/*/server
+services/*/server_new*
+services/*/server_final*
+services/*/core-service
+services/*/tmp/
+
+# === 临时调试脚本 ===
+frontend/test_*.mjs
+
+# === Webpack cache (already has .next/ but cache persists in history) ===
+frontend/.next/cache/
+
+.qoder/
+_server_app/
+_server_pages/
+*.bak*
+
+# === Cursor IDE local config ===
+.cursor/

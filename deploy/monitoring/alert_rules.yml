@@ -1,0 +1,138 @@
+# TraceOS Lab 告警规则
+
+groups:
+  - name: traceos_alerts
+    interval: 30s
+    rules:
+      # 服务可用性告警
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "服务 {{ $labels.job }} 不可用"
+          description: "服务 {{ $labels.job }} 已经下线超过 1 分钟"
+
+      # Core Service 告警
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高错误率"
+          description: "{{ $labels.job }} 的错误率超过 5%"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高延迟"
+          description: "{{ $labels.job }} 的 P95 延迟超过 1 秒"
+
+      # 数据库告警
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL 不可用"
+          description: "PostgreSQL 数据库已下线"
+
+      - alert: HighDBConnections
+        expr: sum(pg_stat_database_numbackends) / sum(pg_settings_max_connections) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据库连接数过高"
+          description: "数据库连接使用率超过 80%"
+
+      - alert: SlowQueries
+        expr: rate(pg_stat_statements_calls_total{queryid!=""}[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "慢查询告警"
+          description: "检测到大量慢查询"
+
+      # Redis 告警
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis 不可用"
+          description: "Redis 已下线"
+
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 内存使用率过高"
+          description: "Redis 内存使用率超过 90%"
+
+      # 容器告警
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器内存使用率过高"
+          description: "容器 {{ $labels.name }} 内存使用率超过 90%"
+
+      - alert: ContainerOOMKilled
+        expr: rate(container_oom_events_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "容器发生 OOM"
+          description: "容器 {{ $labels.name }} 被 OOM Killer 终止"
+
+      # 评测系统告警
+      - alert: EvaluationBacklog
+        expr: evaluation_queue_length > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "评测任务积压"
+          description: "评测队列中有超过 100 个待处理任务"
+
+      - alert: EvaluationTimeout
+        expr: rate(evaluation_timeout_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "评测超时率过高"
+          description: "评测超时率超过 10%"
+
+      # AI 服务告警
+      - alert: AIServiceHighLatency
+        expr: histogram_quantile(0.95, rate(ai_request_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI 服务延迟过高"
+          description: "AI 服务 P95 延迟超过 30 秒"
+
+      - alert: AIServiceErrorRate
+        expr: rate(ai_requests_total{status="error"}[5m]) / rate(ai_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI 服务错误率过高"
+          description: "AI 服务错误率超过 10%"

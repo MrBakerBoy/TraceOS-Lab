@@ -1,0 +1,42 @@
+#!/usr/bin/env bpftrace
+/*
+ * futex_trace.bt - eBPF futex deadlock detection probe
+ * TraceOS Lab
+ *
+ * Traces all futex syscalls to detect deadlocks across ALL
+ * synchronization primitives (mutex, semaphore, rwlock, condvar, barrier).
+ *
+ * Usage:
+ *   bpftrace futex_trace.bt PID
+ *
+ * Filter by target PID via $1 argument (0 = trace all)
+ */
+
+tracepoint:syscalls:sys_enter_futex
+{
+    if ($1 != 0 && pid != $1) { return; }
+
+    $op  = args->op;
+    $cmd = $op & 0x7F;
+
+    if ($cmd == 0) {
+        printf("{\"op\":\"FUTEX_WAIT\",\"tid\":%d,\"pid\":%d,\"uaddr\":\"0x%lx\"}\n",
+               tid, pid, args->uaddr);
+    }
+    else if ($cmd == 1) {
+        printf("{\"op\":\"FUTEX_WAKE\",\"tid\":%d,\"pid\":%d,\"uaddr\":\"0x%lx\"}\n",
+               tid, pid, args->uaddr);
+    }
+    else if ($cmd == 6) {
+        printf("{\"op\":\"FUTEX_LOCK_PI\",\"tid\":%d,\"pid\":%d,\"uaddr\":\"0x%lx\"}\n",
+               tid, pid, args->uaddr);
+    }
+    else if ($cmd == 7) {
+        printf("{\"op\":\"FUTEX_UNLOCK_PI\",\"tid\":%d,\"pid\":%d,\"uaddr\":\"0x%lx\"}\n",
+               tid, pid, args->uaddr);
+    }
+    else if ($cmd == 9) {
+        printf("{\"op\":\"FUTEX_WAIT_BITSET\",\"tid\":%d,\"pid\":%d,\"uaddr\":\"0x%lx\"}\n",
+               tid, pid, args->uaddr);
+    }
+}

@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/core-service/pkg/gen/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+
+// 用户服务
+service UserService {
+  // 获取用户信息
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // 更新用户信息
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  // 批量获取用户
+  rpc BatchGetUsers(BatchGetUsersRequest) returns (BatchGetUsersResponse);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  optional string full_name = 2;
+  optional string email = 3;
+  optional string password = 4;
+  optional UserPreferences preferences = 5;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+}
+
+message BatchGetUsersRequest {
+  repeated string user_ids = 1;
+}
+
+message BatchGetUsersResponse {
+  repeated User users = 1;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string full_name = 4;
+  string role = 5;  // student, teacher, admin
+  bool is_active = 6;
+  UserPreferences preferences = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  optional google.protobuf.Timestamp last_login_at = 10;
+}
+
+message UserPreferences {
+  string theme = 1;
+  string language = 2;
+  string editor_theme = 3;
+  int32 editor_font_size = 4;
+  bool notifications_enabled = 5;
+  string jsonb_preferences = 6;
+}

@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package observability.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/observability/pkg/gen/observability/v1;observabilityv1";
+
+import "google/protobuf/timestamp.proto";
+
+// Trace 观测服务
+service TraceService {
+  // 获取 syscall trace
+  rpc GetSyscallTrace(GetSyscallTraceRequest) returns (GetSyscallTraceResponse);
+  // 流式获取 syscall trace（实时）
+  rpc StreamSyscallTrace(StreamSyscallTraceRequest) returns (stream SyscallEvent);
+  // 获取性能指标
+  rpc GetPerformanceMetrics(GetPerformanceMetricsRequest) returns (GetPerformanceMetricsResponse);
+  // 获取资源使用情况
+  rpc GetResourceUsage(GetResourceUsageRequest) returns (GetResourceUsageResponse);
+  // 开始采集
+  rpc StartCollection(StartCollectionRequest) returns (StartCollectionResponse);
+  // 停止采集
+  rpc StopCollection(StopCollectionRequest) returns (StopCollectionResponse);
+}
+
+message GetSyscallTraceRequest {
+  string submission_id = 1;
+  optional int64 start_time_ns = 2;
+  optional int64 end_time_ns = 3;
+  optional int32 limit = 4;
+  optional string syscall_filter = 5;  // 过滤特定 syscall
+  optional bool include_errors_only = 6;
+}
+
+message GetSyscallTraceResponse {
+  string submission_id = 1;
+  SyscallSummary summary = 2;
+  repeated SyscallEvent traces = 3;
+}
+
+message SyscallSummary {
+  int64 total_count = 1;
+  int64 error_count = 2;
+  int64 unique_syscalls = 3;
+  int64 execution_time_ns = 4;
+  int32 pid = 5;
+  map<string, int64> syscall_counts = 6;
+}
+
+message SyscallEvent {
+  google.protobuf.Timestamp time = 1;
+  int32 pid = 2;
+  optional int32 tid = 3;
+  string syscall_name = 4;
+  int32 syscall_number = 5;
+  map<string, string> args = 6;
+  int64 return_value = 7;
+  int32 error_code = 8;
+  optional string error_name = 9;
+  int64 duration_ns = 10;
+  optional int32 cpu_id = 11;
+  optional string call_stack = 12;
+}
+
+message StreamSyscallTraceRequest {
+  string submission_id = 1;
+  optional string syscall_filter = 2;
+}
+
+message GetPerformanceMetricsRequest {
+  string submission_id = 1;
+}
+
+message GetPerformanceMetricsResponse {
+  repeated PerformanceMetric metrics = 1;
+  MetricsSummary summary = 2;
+}
+
+message PerformanceMetric {
+  string metric_name = 1;  // sched_latency, lock_contention, page_faults, context_switches
+  double value = 2;
+  string unit = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  map<string, string> metadata = 5;
+}
+
+message MetricsSummary {
+  double avg_sched_latency_ns = 1;
+  double max_sched_latency_ns = 2;
+  int64 total_context_switches = 3;
+  int64 total_page_faults = 4;
+  int64 lock_contentions = 5;
+}
+
+message GetResourceUsageRequest {
+  string submission_id = 1;
+  optional int64 start_time_ns = 2;
+  optional int64 end_time_ns = 3;
+}
+
+message GetResourceUsageResponse {
+  repeated ResourceUsagePoint points = 1;
+  ResourceUsageSummary summary = 2;
+}
+
+message ResourceUsagePoint {
+  google.protobuf.Timestamp time = 1;
+  double cpu_percent = 2;
+  int64 memory_bytes = 3;
+  double memory_percent = 4;
+  int64 disk_read_bytes = 5;
+  int64 disk_write_bytes = 6;
+  int64 network_rx_bytes = 7;
+  int64 network_tx_bytes = 8;
+}
+
+message ResourceUsageSummary {
+  double max_cpu_percent = 1;
+  double avg_cpu_percent = 2;
+  int64 max_memory_bytes = 3;
+  double avg_memory_percent = 4;
+  int64 total_disk_read_bytes = 5;
+  int64 total_disk_write_bytes = 6;
+}
+
+message StartCollectionRequest {
+  string submission_id = 1;
+  string experiment_id = 2;
+  string container_id = 3;
+  bool collect_strace = 4;
+  bool collect_perf = 5;
+  bool collect_ebpf = 6;
+  repeated string strace_filters = 7;
+  repeated string perf_events = 8;
+}
+
+message StartCollectionResponse {
+  string collection_id = 1;
+  string status = 2;
+  google.protobuf.Timestamp started_at = 3;
+}
+
+message StopCollectionRequest {
+  string collection_id = 1;
+}
+
+message StopCollectionResponse {
+  string status = 1;
+  google.protobuf.Timestamp stopped_at = 2;
+  string trace_file_path = 3;
+  string perf_file_path = 4;
+}

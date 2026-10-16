@@ -1,0 +1,27 @@
+version: v1
+plugins:
+  - plugin: go
+    out: ../services/core-service/pkg/gen
+    opt: paths=source_relative
+    opt: module=github.com/xxx/TraceOS-Lab/services/core-service
+  - plugin: go
+    out: ../services/observability/pkg/gen
+    opt: paths=source_relative
+    opt: module=github.com/xxx/TraceOS-Lab/services/observability
+  - plugin: grpc-gateway
+    out: ../services/core-service/pkg/gen
+    opt: paths=source_relative
+    opt: logtostderr=true
+  - plugin: openapiv2
+    out: ../services/core-service/api/docs
+    opt: logtostderr=true
+    opt: json_names_for_fields=false
+  - plugin: mypy
+    out: ../services/ai-service/pkg/gen
+    opt: paths=source_relative
+  - plugin: pyi
+    out: ../services/ai-service/pkg/gen
+    opt: paths=source_relative
+  - plugin: grpc_python
+    out: ../services/ai-service/pkg/gen
+    opt: paths=source_relative

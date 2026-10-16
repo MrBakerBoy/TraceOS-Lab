@@ -1,0 +1,105 @@
+#!/usr/bin/env bpftrace
+/*
+ * mem_trace.bt — Memory allocation tracing for OS experiment evaluation
+ * TraceOS Lab eBPF Observability Engine
+ *
+ * Usage: bpftrace mem_trace.bt <target_pid>
+ *
+ * Traces: brk, mmap, munmap
+ * Output: per-interval JSONL (every 1s) + final summary on END
+ * Detects: potential memory leaks (mmap without matching munmap)
+ */
+
+BEGIN {
+    printf("{\"type\":\"mem_init\",\"target_pid\":%d}\n", $1);
+    @target_pid = $1;
+}
+
+// ── brk (heap growth) ────────────────────────────────────────────────
+
+tracepoint:syscalls:sys_enter_brk {
+    if (pid != @target_pid) { return; }
+    @brk_req[tid] = args->brk;
+}
+
+tracepoint:syscalls:sys_exit_brk {
+    if (pid != @target_pid) { return; }
+    $ret = args->ret;
+    if ($ret >= 0) {
+        $prev = @last_brk;
+        if ($prev > 0 && $ret > $prev) {
+            @brk_growth = @brk_growth + ($ret - $prev);
+        }
+        @last_brk = $ret;
+        @brk_count++;
+    } else {
+        @brk_failures++;
+    }
+    delete(@brk_req[tid]);
+}
+
+// ── mmap ──────────────────────────────────────────────────────────────
+
+tracepoint:syscalls:sys_enter_mmap {
+    if (pid != @target_pid) { return; }
+    @mmap_len[tid] = args->len;
+}
+
+tracepoint:syscalls:sys_exit_mmap {
+    if (pid != @target_pid) { return; }
+    $ret = args->ret;
+    if ($ret >= 0) {
+        @mmap_count++;
+        @mmap_total = @mmap_total + @mmap_len[tid];
+    }
+    delete(@mmap_len[tid]);
+}
+
+// ── munmap ────────────────────────────────────────────────────────────
+
+tracepoint:syscalls:sys_enter_munmap {
+    if (pid != @target_pid) { return; }
+    @munmap_len[tid] = args->len;
+}
+
+tracepoint:syscalls:sys_exit_munmap {
+    if (pid != @target_pid) { return; }
+    if (args->ret == 0) {
+        @munmap_count++;
+        @munmap_total = @munmap_total + @munmap_len[tid];
+    }
+    delete(@munmap_len[tid]);
+}
+
+// ── Per-second interval: emit cumulative snapshot as JSONL ────────────
+
+interval:s:1 {
+    $net = (int64)@mmap_total - (int64)@munmap_total + (int64)@brk_growth;
+    $leak = $net > 1048576 ? 1 : 0;
+    printf("{\"type\":\"mem_snapshot\",\"brk_count\":%d,\"brk_growth\":%lu,\"mmap_count\":%d,\"mmap_total\":%lu,\"munmap_count\":%d,\"munmap_total\":%lu,\"net_bytes\":%ld,\"leak_warning\":%d}\n",
+        @brk_count, @brk_growth,
+        @mmap_count, @mmap_total,
+        @munmap_count, @munmap_total,
+        $net, $leak);
+}
+
+// ── Final summary ─────────────────────────────────────────────────────
+
+END {
+    $net = (int64)@mmap_total - (int64)@munmap_total + (int64)@brk_growth;
+    printf("=== Memory Trace Summary ===\n");
+    printf("brk calls:    %d (total growth: %lu bytes)\n", @brk_count, @brk_growth);
+    printf("mmap calls:   %d (total: %lu bytes)\n", @mmap_count, @mmap_total);
+    printf("munmap calls: %d (total: %lu bytes)\n", @munmap_count, @munmap_total);
+    if ($net > 1048576) {
+        printf("WARNING: potential memory leak - %ld bytes mmap'd not freed\n", $net);
+    } else {
+        printf("No significant memory leak detected.\n");
+    }
+    printf("=== End Summary ===\n");
+
+    clear(@brk_count); clear(@brk_growth); clear(@brk_req);
+    clear(@mmap_count); clear(@mmap_total); clear(@mmap_len);
+    clear(@munmap_count); clear(@munmap_total); clear(@munmap_len);
+    clear(@target_pid); clear(@last_brk); clear(@brk_failures);
+}

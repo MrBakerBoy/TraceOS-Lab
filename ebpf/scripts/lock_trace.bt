@@ -1,0 +1,32 @@
+#!/usr/bin/env bpftrace
+/*
+ * lock_trace.bt - uprobe-based pthread lock tracing
+ * TraceOS Lab - Deadlock Detection Engine
+ *
+ * Usage: bpftrace lock_trace.bt
+ */
+
+uprobe:/lib/x86_64-linux-gnu/libc.so.6:pthread_mutex_lock
+{
+    printf("{\"op\":\"LOCK\",\"tid\":%d,\"pid\":%d,\"mtx\":\"0x%lx\"}\n", tid, pid, arg0);
+}
+
+uprobe:/lib/x86_64-linux-gnu/libc.so.6:pthread_mutex_unlock
+{
+    printf("{\"op\":\"UNLOCK\",\"tid\":%d,\"pid\":%d,\"mtx\":\"0x%lx\"}\n", tid, pid, arg0);
+}
+
+uprobe:/lib/x86_64-linux-gnu/libc.so.6:pthread_mutex_trylock
+{
+    printf("{\"op\":\"TRYLOCK\",\"tid\":%d,\"pid\":%d,\"mtx\":\"0x%lx\"}\n", tid, pid, arg0);
+}
+
+uprobe:/lib/x86_64-linux-gnu/libc.so.6:sem_wait
+{
+    printf("{\"op\":\"SEM_WAIT\",\"tid\":%d,\"pid\":%d,\"mtx\":\"0x%lx\"}\n", tid, pid, arg0);
+}
+
+uprobe:/lib/x86_64-linux-gnu/libc.so.6:sem_post
+{
+    printf("{\"op\":\"SEM_POST\",\"tid\":%d,\"pid\":%d,\"mtx\":\"0x%lx\"}\n", tid, pid, arg0);
+}

@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package observability.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/observability/pkg/gen/observability/v1;observabilityv1";
+
+// 流式传输服务
+service StreamService {
+  // 采集 syscall 流
+  rpc CollectSyscallStream(CollectSyscallStreamRequest) returns (stream SyscallStreamEvent);
+  // 采集性能流
+  rpc CollectPerfStream(CollectPerfStreamRequest) returns (stream PerfStreamEvent);
+  // 采集资源流
+  rpc CollectResourceStream(CollectResourceStreamRequest) returns (stream ResourceStreamEvent);
+}
+
+message CollectSyscallStreamRequest {
+  string container_id = 1;
+  repeated string filters = 2;
+  int32 sample_rate = 3;
+}
+
+message SyscallStreamEvent {
+  google.protobuf.Timestamp timestamp = 1;
+  int32 pid = 2;
+  int32 tid = 3;
+  string syscall_name = 4;
+  int32 syscall_number = 5;
+  map<string, string> args = 6;
+  int64 return_value = 7;
+  int32 error_code = 8;
+  int64 duration_ns = 9;
+}
+
+message CollectPerfStreamRequest {
+  string container_id = 1;
+  repeated string event_types = 2;
+  int32 sample_rate = 3;
+}
+
+message PerfStreamEvent {
+  google.protobuf.Timestamp timestamp = 1;
+  int32 pid = 2;
+  int32 tid = 3;
+  string event_type = 4;
+  string event_name = 5;
+  map<string, string> data = 6;
+  int32 cpu_id = 7;
+}
+
+message CollectResourceStreamRequest {
+  string container_id = 1;
+  int32 interval_ms = 2;
+}
+
+message ResourceStreamEvent {
+  google.protobuf.Timestamp timestamp = 1;
+  int32 pid = 2;
+  double cpu_percent = 3;
+  int64 memory_bytes = 4;
+  double memory_percent = 5;
+  int64 disk_read_bytes = 6;
+  int64 disk_write_bytes = 7;
+  int64 network_rx_bytes = 8;
+  int64 network_tx_bytes = 9;
+}

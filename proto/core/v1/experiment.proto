@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/core-service/pkg/gen/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+import "core/v1/user.proto";
+
+// 实验服务
+service ExperimentService {
+  // 获取实验列表
+  rpc ListExperiments(ListExperimentsRequest) returns (ListExperimentsResponse);
+  // 获取实验详情
+  rpc GetExperiment(GetExperimentRequest) returns (GetExperimentResponse);
+  // 创建实验（仅教师）
+  rpc CreateExperiment(CreateExperimentRequest) returns (CreateExperimentResponse);
+  // 更新实验（仅教师）
+  rpc UpdateExperiment(UpdateExperimentRequest) returns (UpdateExperimentResponse);
+  // 获取学生实验进度
+  rpc GetStudentProgress(GetStudentProgressRequest) returns (GetStudentProgressResponse);
+}
+
+message ListExperimentsRequest {
+  optional string course_id = 1;
+  optional string category = 2;  // process, thread, memory, fs, scheduler, deadlock
+  optional string difficulty = 3;  // easy, medium, hard
+  optional bool is_published = 4;
+  int32 page = 5;
+  int32 page_size = 6;
+}
+
+message ListExperimentsResponse {
+  repeated Experiment experiments = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  int32 total_pages = 5;
+}
+
+message GetExperimentRequest {
+  string experiment_id = 1;
+}
+
+message GetExperimentResponse {
+  Experiment experiment = 1;
+  repeated TestCase test_cases = 2;
+  optional ExperimentProgress progress = 3;
+}
+
+message CreateExperimentRequest {
+  string course_id = 1;
+  string category = 2;
+  string name = 3;
+  string title = 4;
+  string description = 5;
+  string instructions = 6;
+  string starter_code = 7;
+  string reference_solution = 8;
+  string difficulty = 9;
+  int32 time_limit = 10;
+  int64 memory_limit = 11;
+  int32 sandbox_level = 12;
+  int32 max_submissions = 13;
+}
+
+message CreateExperimentResponse {
+  Experiment experiment = 1;
+}
+
+message UpdateExperimentRequest {
+  string experiment_id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string instructions = 4;
+  optional string starter_code = 5;
+  optional string reference_solution = 6;
+  optional string difficulty = 7;
+  optional int32 time_limit = 8;
+  optional int64 memory_limit = 9;
+  optional int32 sandbox_level = 10;
+  optional bool is_published = 11;
+}
+
+message UpdateExperimentResponse {
+  Experiment experiment = 1;
+}
+
+message GetStudentProgressRequest {
+  string experiment_id = 1;
+  string student_id = 2;
+}
+
+message GetStudentProgressResponse {
+  ExperimentProgress progress = 1;
+}
+
+message Experiment {
+  string id = 1;
+  optional string course_id = 2;
+  string category = 3;
+  string name = 4;
+  string title = 5;
+  string description = 6;
+  string instructions = 7;
+  string starter_code = 8;
+  string reference_solution = 9;
+  string difficulty = 10;
+  int32 time_limit = 11;
+  int64 memory_limit = 12;
+  int32 sandbox_level = 13;
+  int32 max_submissions = 14;
+  bool is_published = 15;
+  optional string created_by = 16;
+  google.protobuf.Timestamp created_at = 17;
+  google.protobuf.Timestamp updated_at = 18;
+}
+
+message TestCase {
+  string id = 1;
+  string experiment_id = 2;
+  string name = 3;
+  string type = 4;  // normal, edge_case, performance, security
+  string input_data = 5;
+  string expected_output = 6;
+  bool is_public = 7;
+  int32 score_weight = 8;
+  int32 order_index = 9;
+}
+
+message ExperimentProgress {
+  string id = 1;
+  string student_id = 2;
+  string experiment_id = 3;
+  int32 best_score = 4;
+  int32 total_submissions = 5;
+  optional google.protobuf.Timestamp first_submission_at = 6;
+  optional google.protobuf.Timestamp last_submission_at = 7;
+  int64 time_spent_seconds = 8;
+  string common_errors = 9;  // JSON string
+  string mastered_concepts = 10;  // JSON string
+  string weak_concepts = 11;  // JSON string
+}

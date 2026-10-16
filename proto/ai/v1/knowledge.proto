@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package ai.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/ai-service/pkg/gen/ai/v1;aiv1";
+
+// 知识库服务
+service KnowledgeService {
+  // 添加知识
+  rpc AddKnowledge(AddKnowledgeRequest) returns (AddKnowledgeResponse);
+  // 批量添加知识
+  rpc BatchAddKnowledge(BatchAddKnowledgeRequest) returns (BatchAddKnowledgeResponse);
+  // 向量检索
+  rpc VectorSearch(VectorSearchRequest) returns (VectorSearchResponse);
+  // 全文搜索
+  rpc FullTextSearch(FullTextSearchRequest) returns (FullTextSearchResponse);
+  // 获取知识详情
+  rpc GetKnowledge(GetKnowledgeRequest) returns (GetKnowledgeResponse);
+  // 更新知识
+  rpc UpdateKnowledge(UpdateKnowledgeRequest) returns (UpdateKnowledgeResponse);
+  // 删除知识
+  rpc DeleteKnowledge(DeleteKnowledgeRequest) returns (DeleteKnowledgeResponse);
+}
+
+message AddKnowledgeRequest {
+  string source_type = 1;  // textbook, manual, common_error, example_code
+  string source_ref = 2;
+  string title = 3;
+  string content = 4;
+  optional string metadata = 5;  // JSON string
+}
+
+message AddKnowledgeResponse {
+  string knowledge_id = 1;
+  bool embedding_generated = 2;
+}
+
+message BatchAddKnowledgeRequest {
+  repeated AddKnowledgeRequest items = 1;
+}
+
+message BatchAddKnowledgeResponse {
+  repeated string knowledge_ids = 1;
+  int32 success_count = 2;
+  int32 failed_count = 3;
+}
+
+message VectorSearchRequest {
+  string query = 1;
+  int32 top_k = 2;
+  optional string source_type = 3;
+  optional map<string, string> filters = 4;
+  optional double score_threshold = 5;
+}
+
+message VectorSearchResponse {
+  repeated KnowledgeItem items = 1;
+}
+
+message FullTextSearchRequest {
+  string query = 1;
+  int32 limit = 2;
+  optional string source_type = 3;
+}
+
+message FullTextSearchResponse {
+  repeated KnowledgeItem items = 1;
+}
+
+message GetKnowledgeRequest {
+  string knowledge_id = 1;
+}
+
+message GetKnowledgeResponse {
+  KnowledgeItem item = 1;
+}
+
+message UpdateKnowledgeRequest {
+  string knowledge_id = 1;
+  optional string title = 2;
+  optional string content = 3;
+  optional string metadata = 4;  // JSON string
+}
+
+message UpdateKnowledgeResponse {
+  KnowledgeItem item = 1;
+}
+
+message DeleteKnowledgeRequest {
+  string knowledge_id = 1;
+}
+
+message DeleteKnowledgeResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message KnowledgeItem {
+  string id = 1;
+  string source_type = 2;
+  string source_ref = 3;
+  string title = 4;
+  string content = 5;
+  optional int32 chunk_index = 6;
+  optional double similarity_score = 7;
+  optional string metadata = 8;  // JSON string
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}

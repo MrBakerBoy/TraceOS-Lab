@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/core-service/pkg/gen/core/v1;corev1";
+
+import "google/protobuf/timestamp.proto";
+
+// 评测服务
+service EvaluationService {
+  // 提交评测任务
+  rpc SubmitEvaluation(SubmitEvaluationRequest) returns (SubmitEvaluationResponse);
+  // 获取评测结果
+  rpc GetEvaluationResult(GetEvaluationResultRequest) returns (GetEvaluationResultResponse);
+  // 流式获取评测进度
+  rpc StreamEvaluationProgress(StreamEvaluationProgressRequest) returns (stream EvaluationProgress);
+  // 获取提交历史
+  rpc ListSubmissions(ListSubmissionsRequest) returns (ListSubmissionsResponse);
+  // 获取测试结果详情
+  rpc GetTestResults(GetTestResultsRequest) returns (GetTestResultsResponse);
+}
+
+message SubmitEvaluationRequest {
+  string experiment_id = 1;
+  string student_id = 2;
+  string language = 3;  // c, cpp, python, rust, go
+  string code = 4;
+}
+
+message SubmitEvaluationResponse {
+  string submission_id = 1;
+  string status = 2;  // pending, running, completed, failed, timeout, memory_exceeded
+  int32 submission_number = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message GetEvaluationResultRequest {
+  string submission_id = 1;
+}
+
+message GetEvaluationResultResponse {
+  EvaluationResult result = 1;
+}
+
+message EvaluationResult {
+  string submission_id = 1;
+  string experiment_id = 2;
+  string student_id = 3;
+  string status = 4;
+  int32 submission_number = 5;
+  optional int32 score = 6;
+  optional int32 total_score = 7;
+  int32 passed_test_cases = 8;
+  int32 total_test_cases = 9;
+  string code = 10;
+  string language = 11;
+  optional string compile_error = 12;
+  optional string runtime_error = 13;
+  optional int32 execution_time_ms = 14;
+  optional int64 memory_usage_bytes = 15;
+  optional string sandbox_container_id = 16;
+  optional string trace_file_path = 17;
+  google.protobuf.Timestamp created_at = 18;
+  optional google.protobuf.Timestamp completed_at = 19;
+}
+
+message StreamEvaluationProgressRequest {
+  string submission_id = 1;
+}
+
+message EvaluationProgress {
+  string submission_id = 1;
+  string status = 2;
+  int32 progress = 3;  // 0-100
+  string message = 4;
+  optional int32 current_test_case = 5;
+  optional int32 total_test_cases = 6;
+  google.protobuf.Timestamp timestamp = 7;
+}
+
+message ListSubmissionsRequest {
+  string experiment_id = 1;
+  optional string student_id = 2;
+  optional string status = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+message ListSubmissionsResponse {
+  repeated EvaluationResult submissions = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  int32 total_pages = 5;
+}
+
+message GetTestResultsRequest {
+  string submission_id = 1;
+}
+
+message GetTestResultsResponse {
+  repeated TestCaseResult test_results = 1;
+}
+
+message TestCaseResult {
+  string id = 1;
+  string submission_id = 2;
+  string test_case_id = 3;
+  TestCaseInfo test_case = 4;
+  string status = 5;  // passed, failed, error, timeout
+  optional string actual_output = 6;
+  optional string error_message = 7;
+  optional int32 execution_time_ms = 8;
+  optional int64 memory_usage_bytes = 9;
+  optional int32 score = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+
+message TestCaseInfo {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  bool is_public = 4;
+}

@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package ai.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/ai-service/pkg/gen/ai/v1;aiv1";
+
+import "google/protobuf/timestamp.proto";
+
+// AI 诊断服务
+service DiagnosisService {
+  // 请求诊断
+  rpc RequestDiagnosis(RequestDiagnosisRequest) returns (RequestDiagnosisResponse);
+  // 获取诊断结果
+  rpc GetDiagnosis(GetDiagnosisRequest) returns (GetDiagnosisResponse);
+  // 流式获取诊断进度
+  rpc StreamDiagnosisProgress(StreamDiagnosisProgressRequest) returns (stream DiagnosisProgress);
+  // 获取渐进式提示
+  rpc GetHint(GetHintRequest) returns (GetHintResponse);
+  // 批量诊断
+  rpc BatchDiagnose(BatchDiagnoseRequest) returns (BatchDiagnoseResponse);
+}
+
+message RequestDiagnosisRequest {
+  string submission_id = 1;
+  string experiment_id = 2;
+  string student_id = 3;
+  bool enable_code_review = 4;
+  bool enable_trace_analysis = 5;
+  bool enable_knowledge_graph = 6;
+}
+
+message RequestDiagnosisResponse {
+  string diagnosis_id = 1;
+  string status = 2;  // pending, in_progress, completed, failed
+  int32 estimated_time_seconds = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message GetDiagnosisRequest {
+  string diagnosis_id = 1;
+}
+
+message GetDiagnosisResponse {
+  DiagnosisResult result = 1;
+}
+
+message DiagnosisResult {
+  string diagnosis_id = 1;
+  string submission_id = 2;
+  string student_id = 3;
+  string status = 4;
+  optional string error_type = 5;  // fd_leak, deadlock, race_condition, memory_leak, 等
+  optional string severity = 6;  // low, medium, high, critical
+  optional string root_cause = 7;
+  Feedback feedback = 8;
+  repeated Concept related_concepts = 9;
+  repeated SyscallInfo related_syscalls = 10;
+  repeated SuggestedFix suggested_fixes = 11;
+  double confidence_score = 12;
+  string agent_chain = 13;  // JSON string
+  google.protobuf.Timestamp created_at = 14;
+  optional google.protobuf.Timestamp completed_at = 15;
+}
+
+message Feedback {
+  string level_1 = 1;  // 最轻量级提示
+  string level_2 = 2;  // 引导级提示
+  string level_3 = 3;  // 详细解释
+}
+
+message Concept {
+  string name = 1;
+  string description = 2;
+  string type = 3;  // syscall, concept, resource
+  optional string difficulty = 4;
+}
+
+message SyscallInfo {
+  string name = 1;
+  string description = 2;
+  optional string error_code = 3;
+  optional int32 syscall_number = 4;
+}
+
+message SuggestedFix {
+  string title = 1;
+  string description = 2;
+  string code_snippet = 3;
+  optional string explanation = 4;
+}
+
+message StreamDiagnosisProgressRequest {
+  string diagnosis_id = 1;
+}
+
+message DiagnosisProgress {
+  string diagnosis_id = 1;
+  string status = 2;
+  string stage = 3;  // trace_analysis, code_review, error_diagnosis, feedback_generation
+  string agent_name = 4;  // TraceAnalyzer, CodeReview, ErrorDiagnosis, Pedagogical
+  int32 progress = 5;  // 0-100
+  string message = 6;
+  optional AgentThinking thinking = 7;
+  google.protobuf.Timestamp timestamp = 8;
+}
+
+message AgentThinking {
+  string agent_name = 1;
+  string thought = 2;
+  repeated string observations = 3;
+  optional string next_action = 4;
+}
+
+message GetHintRequest {
+  string diagnosis_id = 1;
+  int32 level = 2;  // 1, 2, 3
+}
+
+message GetHintResponse {
+  string hint = 1;
+  string explanation = 2;
+  repeated Concept related_concepts = 3;
+  repeated string code_locations = 4;  // 涉及的代码位置
+}
+
+message BatchDiagnoseRequest {
+  repeated string submission_ids = 1;
+}
+
+message BatchDiagnoseResponse {
+  repeated DiagnosisResult results = 1;
+}

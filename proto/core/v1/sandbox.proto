@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package core.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/core-service/pkg/gen/core/v1;corev1";
+
+// 沙箱服务
+service SandboxService {
+  // 创建沙箱
+  rpc CreateSandbox(CreateSandboxRequest) returns (CreateSandboxResponse);
+  // 销毁沙箱
+  rpc DestroySandbox(DestroySandboxRequest) returns (DestroySandboxResponse);
+  // 执行命令
+  rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandResponse);
+  // 获取沙箱状态
+  rpc GetSandboxStatus(GetSandboxStatusRequest) returns (GetSandboxStatusResponse);
+}
+
+message CreateSandboxRequest {
+  string submission_id = 1;
+  string experiment_id = 2;
+  string student_id = 3;
+  int32 sandbox_level = 4;  // 1, 2, 3
+  int64 memory_limit = 5;
+  int32 time_limit = 6;
+  repeated string seccomp_profile = 7;
+}
+
+message CreateSandboxResponse {
+  string sandbox_id = 1;
+  string container_id = 2;
+  string status = 3;  // created, running
+}
+
+message DestroySandboxRequest {
+  string sandbox_id = 1;
+}
+
+message DestroySandboxResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ExecuteCommandRequest {
+  string sandbox_id = 1;
+  string command = 2;
+  repeated string args = 3;
+  string working_dir = 4;
+  int32 timeout = 5;
+  bool collect_trace = 6;
+  bool collect_perf = 7;
+}
+
+message ExecuteCommandResponse {
+  int32 exit_code = 1;
+  string stdout = 2;
+  string stderr = 3;
+  int32 execution_time_ms = 4;
+  int64 memory_usage_bytes = 5;
+  optional string trace_file_path = 6;
+  optional string perf_file_path = 7;
+  string error_message = 8;
+}
+
+message GetSandboxStatusRequest {
+  string sandbox_id = 1;
+}
+
+message GetSandboxStatusResponse {
+  string sandbox_id = 1;
+  string status = 2;  // created, running, stopped, error
+  double cpu_percent = 3;
+  int64 memory_bytes = 4;
+  google.protobuf.Timestamp created_at = 5;
+  optional google.protobuf.Timestamp stopped_at = 6;
+}

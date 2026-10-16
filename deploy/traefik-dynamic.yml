@@ -1,0 +1,14 @@
+http:
+  routers:
+    frontend:
+      rule: "PathPrefix(`/`)"
+      service: frontend
+      entrypoints:
+        - web
+      priority: 10
+
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://traceos-frontend:3000"

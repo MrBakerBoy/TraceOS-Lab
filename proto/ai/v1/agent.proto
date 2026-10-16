@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package ai.v1;
+
+option go_package = "github.com/xxx/TraceOS-Lab/services/ai-service/pkg/gen/ai/v1;aiv1";
+
+// Agent 服务
+service AgentService {
+  // 执行 Agent
+  rpc ExecuteAgent(ExecuteAgentRequest) returns (ExecuteAgentResponse);
+  // 流式执行 Agent
+  rpc StreamAgentExecution(StreamAgentExecutionRequest) returns (stream AgentOutput);
+  // 获取 Agent 配置
+  rpc GetAgentConfig(GetAgentConfigRequest) returns (GetAgentConfigResponse);
+  // 更新 Agent 配置
+  rpc UpdateAgentConfig(UpdateAgentConfigRequest) returns (UpdateAgentConfigResponse);
+}
+
+message ExecuteAgentRequest {
+  string agent_name = 1;  // TraceAnalyzer, ErrorDiagnosis, Pedagogical, CodeReview
+  string input_data = 1;  // JSON string
+  map<string, string> context = 2;
+  optional string model = 3;
+  map<string, string> parameters = 4;
+}
+
+message ExecuteAgentResponse {
+  string agent_execution_id = 1;
+  string status = 2;  // completed, failed
+  string output_data = 3;  // JSON string
+  int32 execution_time_ms = 4;
+  TokenUsage token_usage = 5;
+  optional string error_message = 6;
+}
+
+message StreamAgentExecutionRequest {
+  string agent_name = 1;
+  string input_data = 2;  // JSON string
+  map<string, string> context = 3;
+  optional string model = 4;
+}
+
+message AgentOutput {
+  string agent_execution_id = 1;
+  string agent_name = 2;
+  string output_chunk = 3;
+  string status = 4;  // thinking, generating, completed, error
+  optional AgentThinking thinking = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+message GetAgentConfigRequest {
+  string agent_name = 1;
+}
+
+message GetAgentConfigResponse {
+  AgentConfig config = 1;
+}
+
+message AgentConfig {
+  string name = 1;
+  string description = 2;
+  string default_model = 3;
+  int32 max_tokens = 4;
+  double temperature = 5;
+  map<string, string> system_prompt = 6;
+  repeated Tool tools = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message Tool {
+  string name = 1;
+  string description = 2;
+  map<string, string> parameters = 3;
+}
+
+message UpdateAgentConfigRequest {
+  string agent_name = 1;
+  optional string default_model = 2;
+  optional int32 max_tokens = 3;
+  optional double temperature = 4;
+  optional map<string, string> system_prompt = 5;
+}
+
+message UpdateAgentConfigResponse {
+  AgentConfig config = 1;
+}
+
+message TokenUsage {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+}

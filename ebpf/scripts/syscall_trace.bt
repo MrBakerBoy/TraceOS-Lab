@@ -1,0 +1,56 @@
+#!/usr/bin/env bpftrace
+/*
+ * syscall_trace.bt — System call tracing for OS experiment evaluation
+ * TraceOS Lab eBPF Observability Engine
+ *
+ * Usage: bpftrace syscall_trace.bt <pid>
+ * (pass 0 to trace all processes)
+ */
+
+// ── Per-call trace event (JSONL for SSE) ──
+tracepoint:raw_syscalls:sys_enter
+/$1 == 0 || pid == $1/
+{
+    @start_ns[tid] = nsecs;
+    @syscall_nr[tid] = args->id;
+}
+
+tracepoint:raw_syscalls:sys_exit
+/$1 == 0 || pid == $1/
+{
+    if (@start_ns[tid] == 0) { return; }
+    $dur_ns = nsecs - @start_ns[tid];
+    printf("{\"type\":\"trace_event\",\"syscall\":%d,\"tid\":%d,\"pid\":%d,\"ret\":%d,\"dur_ns\":%d}\n",
+        @syscall_nr[tid], tid, pid, args->ret, $dur_ns);
+    delete(@start_ns[tid]);
+    delete(@syscall_nr[tid]);
+}
+
+// ── Aggregation: per-interval stats ──
+tracepoint:raw_syscalls:sys_enter
+/$1 == 0 || pid == $1/
+{
+    @sc_count[args->id] = count();
+}
+
+interval:s:1
+{
+    time("%H:%M:%S Syscall Rate:\n");
+    print(@sc_count);
+    clear(@sc_count);
+}
+
+// ── Latency histogram (every 5s) ──
+tracepoint:raw_syscalls:sys_exit
+/$1 == 0 || pid == $1/
+{
+    if (@start_ns[tid] == 0) { return; }
+    $dur_us = (nsecs - @start_ns[tid]) / 1000;
+    @lat_us[@syscall_nr[tid]] = lhist($dur_us, 0, 10000, 100);
+}
+
+interval:s:5
+{
+    time("\n%H:%M:%S Latency Histogram (us):\n");
+    print(@lat_us);
+}
